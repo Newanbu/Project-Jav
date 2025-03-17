@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getCategorias, getEquipos, getRaspadores ,updateEquipo, logout,addRaspador,deleteEquipo } from "../endpoints/endpoints";
+import { getCategorias, getEquipos, getRaspadores ,updateEquipo, logout,addRaspador,deleteEquipo, addCategoria} from "../endpoints/endpoints";
 import Swal from "sweetalert2";
 import {useNavigate} from "react-router-dom";
 const Menu = () => {
@@ -9,8 +9,10 @@ const Menu = () => {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(""); 
   const nav = useNavigate();
   const [showEditEquipoModal, setShowEditModal] = useState(false);
+  const [showAddEquipo, setShowAddEquipo] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null)
   const [showRaspadorModal, setShowRaspadorModal] = useState(false);
+  const [showCatTagModal, setShowCatTagModal] = useState(false);
   const [newRaspador, setNewRaspador] = useState({
       equipo: "",
       raspador: "",
@@ -22,10 +24,41 @@ const Menu = () => {
       ciclo_hoja: "",
       proximo_cambio: "",
   });
+  const [tagSeleccionado, setTagSeleccionado] = useState({
+    categoria: "",
+    tag_estandar: "",
+});
+
+const [categoriaTagSeleccionado, setcategoriaTagSeleccionado] = useState({
+    nombre: "",
+});
+
+// 📌 Función para manejar cambios en los inputs
+const handleChange = (e) => {
+    const { name, value } = e.target;
+    setTagSeleccionado((prev) => ({
+        ...prev,
+        [name]: value,
+    }));
+};
 
 
-  const openRaspadorModal = () => setShowRaspadorModal(true);
+const handleChangeCat = (e) => {
+    const { name, value } = e.target;
+    setcategoriaTagSeleccionado((prev) => ({
+        ...prev,
+        [name]: value,
+    }));
+};
+
+
+const openRaspadorModal = () => setShowRaspadorModal(true);
 const closeRaspadorModal = () => setShowRaspadorModal(false);
+
+
+const openCategoriaTagModal = () => setShowCatTagModal(true);
+const closeCategoriaTagModal = () => setShowCatTagModal(false);
+  
   
 const handleDeleteRas = async (id) => {
   await deleteEquipo(id)
@@ -38,6 +71,39 @@ const handleDeleteRas = async (id) => {
   const getras = await getRaspadores()
   setRaspadores(getras)
 }
+
+const handleAddTag = async () => {
+    if (!tagSeleccionado.categoria || !tagSeleccionado.tag_estandar) {
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Debes seleccionar una categoría y un TAG del equipo.",
+            confirmButtonText: "Aceptar",
+        });
+        return;
+    }
+
+    try {
+        await addCategoria(tagSeleccionado.tag_estandar, tagSeleccionado.categoria);
+        Swal.fire({
+            icon: "success",
+            title: "Equipo agregado",
+            text: "El equipo fue agregado correctamente.",
+            confirmButtonText: "Aceptar",
+        });
+        closeAddEquipoModal();
+        
+    }catch(error){
+        Swal.fire({
+            icon:"error",
+            title:"Error",
+            text:error.response?.data?.detail || "Hubo un problema al agregar el equipo",
+            confirmButtonText:"Aceptar"
+        })
+    }
+
+}
+
 
 const calcularVidaUtil = (proximoCambio, cicloHoja) => {
   const hoy = new Date(); // 📌 Fecha actual
@@ -57,6 +123,15 @@ const calcularVidaUtil = (proximoCambio, cicloHoja) => {
 const openEditEquipoModal = (equipo) => {
   setEquipoSeleccionado(equipo);
   setShowEditModal(true);
+};
+
+const openAddEquipoModal = () => {
+    setShowAddEquipo(true);
+};
+
+
+const closeAddEquipoModal = () => {
+    setShowAddEquipo(false);
 };
 
 const closeEditEquipoModal = () => {
@@ -91,6 +166,37 @@ const handleEditRaspadorChange = (e) => {
       }
   }
 };
+
+const handleAddCatTag = async () => {
+    if (!categoriaTagSeleccionado.nombre) {
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Debes ingresar un nombre para la categoría.",
+            confirmButtonText: "Aceptar",
+        });
+        return;
+    }
+    try{
+        const response = await addCategoria(categoriaTagSeleccionado.nombre)
+        if(response){
+            Swal.fire({
+                icon:"success",
+                title:"Categoría agregada",
+                text:"Categoría agregada correctamente",
+                confirmButtonText:"Aceptar"
+            })
+            closeCategoriaTagModal()
+        }
+    }catch(error){
+        Swal.fire({
+            icon:"error",
+            title:"Error",
+            text:error.response?.data?.detail || "Hubo un problema al agregar la categoría",
+            confirmButtonText:"Aceptar"
+        })
+    }
+}
 
 const handleUpdateEquipo = async () => {
 
@@ -290,7 +396,6 @@ return (
         </select>
     </div>
 
-    {/* 🔹 Logo como fondo opcional (si necesitas una imagen visible sobre el fondo) */}
 
 
     {/* 🔹 Botones de Acción */}
@@ -307,6 +412,20 @@ return (
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
         >
             Agregar Raspador
+        </button>
+
+        <button 
+            onClick={openAddEquipoModal} 
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+        >
+            Agregar Equipo
+        </button>
+
+        <button 
+            onClick={openCategoriaTagModal} 
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+        >
+            Agregar Categoria
         </button>
     </div>
 </div>
@@ -393,7 +512,7 @@ return (
             <div className="grid grid-cols-2 gap-4">
                 {/* 🔹 Equipo */}
                 <div className="col-span-2">
-                    <label className="block text-gray-700 font-semibold">Equipo</label>
+                    <label className="block text-gray-700 font-semibold">Tag</label>
                     <select 
                         name="equipo" 
                         className="border p-2 rounded-lg w-full" 
@@ -648,9 +767,96 @@ return (
     </div>
 )}
 
+{showAddEquipo && (
+    <div
+        id="modal-backdrop"
+        className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center px-4 animate-fadeIn"
+    >
+        <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg relative" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-6 text-center text-gray-800">Agregar Equipo</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+                {/* 🔹 Selección de Categoría */}
+                <div className="col-span-2">
+                    <label className="block text-gray-700 font-semibold">Categoría</label>
+                    <select
+                        name="categoria"
+                        className="border p-2 rounded-lg w-full"
+                        value={tagSeleccionado.categoria || ""}
+                        onChange={handleChange}
+                    >
+                        <option value="">Seleccione una categoría</option>
+                        {categorias.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                                {cat.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* 🔹 Ingreso del TAG estándar */}
+                <div className="col-span-2">
+                    <label className="block text-gray-700 font-semibold">TAG del Equipo</label>
+                    <input
+                        type="text"
+                        name="tag_estandar"
+                        className="border p-2 rounded-lg w-full"
+                        value={tagSeleccionado.tag_estandar || ""}
+                        onChange={handleChange}
+                    />
+                </div>
+
+                {/* 🔹 Botones */}
+                <div className="flex justify-between mt-6 col-span-2">
+                    <button onClick={closeAddEquipoModal} className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition">
+                        Cancelar
+                    </button>
+                    <button onClick={handleAddTag} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
+
+{showCatTagModal && (
+    <div
+        id="modal-backdrop"
+        className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center px-4 animate-fadeIn"
+    >
+        <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg relative" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-6 text-center text-gray-800">Agregar Categoria</h3>
+
+
+                {/* 🔹 Ingreso del TAG estándar */}
+                <div className="col-span-2">
+                    <label className="block text-gray-700 font-semibold">Categoria</label>
+                    <input
+                        type="text"
+                        name="tag_estandar"
+                        className="border p-2 rounded-lg w-full"
+                        value={categoriaTagSeleccionado.categoria || ""}
+                        onChange={handleChangeCat}
+                    />
+                </div>
+
+                {/* 🔹 Botones */}
+                <div className="flex justify-between mt-6 col-span-2">
+                    <button onClick={closeCategoriaTagModal} className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition">
+                        Cancelar
+                    </button>
+                    <button onClick={handleAddCatTag} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+)}
   </div>
   </>
-)};
+);
+}
 
 
 

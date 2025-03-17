@@ -60,6 +60,38 @@ export const getCategorias = async () => {
     }
 };
 
+
+export const addCategoriaTag = async (categoria) => {
+    try {
+        const response = await axios.post(CATEGORIA_URL, {categoria:categoria}, {
+            withCredentials: true,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+    }catch(error){
+        console.error("❌ Error al agregar categoría:", error.response?.data || error.message);
+        throw error;
+    }
+}
+
+export const addCategoria = async (tag, categoria) => {
+    try {
+        const response = await axios.post(EQUIPOS_URL, {tag_estandar:tag, categoria:categoria}, {
+            withCredentials: true,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("❌ Error al agregar categoría:", error.response?.data || error.message);
+        throw error;
+    }
+}
+
+
 // 🔹 Obtener Equipos (Filtrar por Categoría si se pasa un ID)
 export const getEquipos = async () => {
     try {
