@@ -113,6 +113,7 @@ const handleAddTag = async () => {
             text: "El equipo fue agregado correctamente.",
             confirmButtonText: "Aceptar",
         });
+        window.location.reload()
         closeAddEquipoModal();
         
     }catch(error){
@@ -574,6 +575,7 @@ return (
                         className="border p-2 rounded-lg w-full bg-gray-100 cursor-not-allowed text-gray-800" 
                         value={
                             newRaspador.dias_vida_util_disponible > 30 ? newRaspador.accion = "El raspador tiene una vida útil adecuada." :
+                            newRaspador.dias_vida_util_disponible <= 0 ? newRaspador.accion = "Deshabilitado" :
                             newRaspador.dias_vida_util_disponible <= 30 && newRaspador.dias_vida_util_disponible > 15 ? newRaspador.accion ="Se recomienda programar una revisión pronto." :
                             newRaspador.dias_vida_util_disponible <= 15 && newRaspador.dias_vida_util_disponible > 0 ? newRaspador.accion ="¡Atención! Cambio recomendado en breve." :
                             ""
@@ -709,6 +711,7 @@ return (
                         name="accion" 
                         className="border p-2 rounded-lg w-full" 
                         value={
+                            equipoSeleccionado.dias_vida_util_disponible <= 0 ? equipoSeleccionado.accion = "Deshabilitado" :
                             equipoSeleccionado.dias_vida_util_disponible > 30 ? equipoSeleccionado.accion = "El raspador tiene una vida útil adecuada." :
                             equipoSeleccionado.dias_vida_util_disponible <= 30 && equipoSeleccionado.dias_vida_util_disponible > 15 ? newRaspador.accion ="Se recomienda programar una revisión pronto." :
                             equipoSeleccionado.dias_vida_util_disponible <= 15 && equipoSeleccionado.dias_vida_util_disponible > 0 ? newRaspador.accion ="¡Atención! Cambio recomendado en breve." :

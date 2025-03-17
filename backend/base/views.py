@@ -190,7 +190,8 @@ class EquipoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = self.queryset  # Captura el queryset sin filtro
+        # Captura todos los equipos sin filtrar
+        queryset = Equipo.objects.select_related("categoria").all()
 
         categoria_id = self.request.query_params.get("categoria_id")
         if categoria_id:
