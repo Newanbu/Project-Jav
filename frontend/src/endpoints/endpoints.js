@@ -61,9 +61,9 @@ export const getCategorias = async () => {
 };
 
 
-export const addCategoriaTag = async (categoria) => {
+export const addCategoriaTag = async (nombre) => {
     try {
-        const response = await axios.post(CATEGORIA_URL, {categoria:categoria}, {
+        const response = await axios.post(CATEGORIA_URL, {nombre:nombre}, {
             withCredentials: true,
             headers: {
                 "Content-Type": "application/json",
@@ -92,7 +92,6 @@ export const addCategoria = async (tag, categoria) => {
 }
 
 
-// 🔹 Obtener Equipos (Filtrar por Categoría si se pasa un ID)
 export const getEquipos = async () => {
     try {
         const response = await axios.get(EQUIPOS_URL, {
@@ -101,7 +100,7 @@ export const getEquipos = async () => {
                 "Content-Type": "application/json",
             },
         });
-        return response.data;
+     return response.data
     } catch (error) {
         console.error("❌ Error al obtener equipos:", error.response?.data || error.message);
         return [];
@@ -173,9 +172,9 @@ export const addRaspador = async (
 };
 
 
-export const addEquipo = async (equipoData) => {
+export const addEquipo = async (tag_estandar,categoria) => {
     try {
-        const response = await axios.post(EQUIPOS_URL, equipoData, {
+        const response = await axios.post(EQUIPOS_URL, {tag_estandar:tag_estandar, categoria:categoria}, {
             withCredentials: true,
             headers: {
                 "Content-Type": "application/json",

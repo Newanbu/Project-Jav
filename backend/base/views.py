@@ -190,10 +190,14 @@ class EquipoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        queryset = self.queryset  # Captura el queryset sin filtro
+
         categoria_id = self.request.query_params.get("categoria_id")
         if categoria_id:
-            return self.queryset.filter(categoria__id=categoria_id)  # ✅ Filtra por ID numérico
-        return self.queryset
+            queryset = queryset.filter(categoria__id=categoria_id)
+
+        print("Equipos en queryset:", queryset.count())  # Verifica la cantidad de equipos obtenidos
+        return queryset
     
     
 class RaspadorChancadoViewSet(viewsets.ModelViewSet):

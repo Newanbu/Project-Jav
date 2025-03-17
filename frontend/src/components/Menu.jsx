@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getCategorias, getEquipos, getRaspadores ,updateEquipo, logout,addRaspador,deleteEquipo, addCategoria} from "../endpoints/endpoints";
+import { getCategorias, getEquipos, getRaspadores ,updateEquipo, logout,addRaspador,deleteEquipo, addCategoria, addCategoriaTag} from "../endpoints/endpoints";
 import Swal from "sweetalert2";
 import {useNavigate} from "react-router-dom";
 const Menu = () => {
@@ -32,6 +32,28 @@ const Menu = () => {
 const [categoriaTagSeleccionado, setcategoriaTagSeleccionado] = useState({
     nombre: "",
 });
+
+
+
+  // 🔹 Obtener datos desde la API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const categoriasData = await getCategorias();
+        setCategorias(categoriasData);
+  
+        const equiposData = await getEquipos();
+        setEquipos(equiposData);
+
+        const raspadoresData = await getRaspadores();
+        setRaspadores(raspadoresData);
+      } catch (error) {
+        console.error("❌ Error al obtener los datos:", error);
+      }
+    };
+  
+    fetchData();
+  }, []);
 
 // 📌 Función para manejar cambios en los inputs
 const handleChange = (e) => {
@@ -178,8 +200,7 @@ const handleAddCatTag = async () => {
         return;
     }
     try{
-        const response = await addCategoria(categoriaTagSeleccionado.nombre)
-        if(response){
+        const response = await addCategoriaTag(categoriaTagSeleccionado.nombre)
             Swal.fire({
                 icon:"success",
                 title:"Categoría agregada",
@@ -187,7 +208,7 @@ const handleAddCatTag = async () => {
                 confirmButtonText:"Aceptar"
             })
             closeCategoriaTagModal()
-        }
+        
     }catch(error){
         Swal.fire({
             icon:"error",
@@ -234,25 +255,7 @@ const handleUpdateEquipo = async () => {
 };
 
 
-  // 🔹 Obtener datos desde la API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const categoriasData = await getCategorias();
-        setCategorias(categoriasData);
-  
-        const equiposData = await getEquipos();
-        setEquipos(equiposData);
-  
-        const raspadoresData = await getRaspadores();
-        setRaspadores(raspadoresData);
-      } catch (error) {
-        console.error("❌ Error al obtener los datos:", error);
-      }
-    };
-  
-    fetchData();
-  }, []);
+
 
   const calcularDiferenciaDias = (fechaInicio, fechaFin) => {
     const date1 = new Date(fechaInicio);
@@ -563,14 +566,19 @@ return (
             </div>
 
                 {/* 🔹 Acción Recomendada */}
-                <div className="col-span-2">
-                    <label className="block text-gray-700 font-semibold">Acción Recomendada</label>
+<div>
+                    <label className="block text-gray-700 font-semibold">Accion Recomendada</label>
                     <input 
                         type="text" 
                         name="accion" 
-                        className="border p-2 rounded-lg w-full" 
-                        value={newRaspador.accion}
-                        onChange={handleInputChange} 
+                        className="border p-2 rounded-lg w-full bg-gray-100 cursor-not-allowed text-gray-800" 
+                        value={
+                            newRaspador.dias_vida_util_disponible > 30 ? newRaspador.accion = "El raspador tiene una vida útil adecuada." :
+                            newRaspador.dias_vida_util_disponible <= 30 && newRaspador.dias_vida_util_disponible > 15 ? newRaspador.accion ="Se recomienda programar una revisión pronto." :
+                            newRaspador.dias_vida_util_disponible <= 15 && newRaspador.dias_vida_util_disponible > 0 ? newRaspador.accion ="¡Atención! Cambio recomendado en breve." :
+                            ""
+                        }
+                        readOnly
                     />
                 </div>
 
@@ -700,8 +708,13 @@ return (
                         type="text" 
                         name="accion" 
                         className="border p-2 rounded-lg w-full" 
-                        value={equipoSeleccionado.accion} 
-                        onChange={handleEditRaspadorChange}
+                        value={
+                            equipoSeleccionado.dias_vida_util_disponible > 30 ? equipoSeleccionado.accion = "El raspador tiene una vida útil adecuada." :
+                            equipoSeleccionado.dias_vida_util_disponible <= 30 && equipoSeleccionado.dias_vida_util_disponible > 15 ? newRaspador.accion ="Se recomienda programar una revisión pronto." :
+                            equipoSeleccionado.dias_vida_util_disponible <= 15 && equipoSeleccionado.dias_vida_util_disponible > 0 ? newRaspador.accion ="¡Atención! Cambio recomendado en breve." :
+                            "¡Cambio inmediato requerido!"
+                        }
+                        readOnly
                     />
                 </div>
 
@@ -834,9 +847,9 @@ return (
                     <label className="block text-gray-700 font-semibold">Categoria</label>
                     <input
                         type="text"
-                        name="tag_estandar"
+                        name="nombre"
                         className="border p-2 rounded-lg w-full"
-                        value={categoriaTagSeleccionado.categoria || ""}
+                        value={categoriaTagSeleccionado.nombre || ""}
                         onChange={handleChangeCat}
                     />
                 </div>
