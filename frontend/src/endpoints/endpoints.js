@@ -205,6 +205,49 @@ export const updateEquipo = async (id, equipoData) => {
 }
 
 
+export const info_raspador = async (id) => {
+    try {
+        if (!id) {
+            throw new Error("❌ Error: Se intentó obtener información con un ID inválido.");
+        }
+
+        console.log(`📡 Solicitando datos del raspador con ID: ${id} en ${RASPADORES_URL}/${id}`);
+
+        const response = await axios.get(`${RASPADORES_URL}${id}`, {
+            withCredentials: true,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (!response.data || Object.keys(response.data).length === 0) {
+            throw new Error("❌ La API devolvió una respuesta vacía.");
+        }
+
+        console.log("✅ Datos del raspador recibidos:", response.data);
+        return response.data;
+
+    } catch (error) {
+        console.error("❌ Error al obtener información del raspador:", error.response?.data || error.message);
+        
+        // Si la API devuelve un error 404 o 500, mostrar mensaje claro
+        if (error.response) {
+            const { status } = error.response;
+            if (status === 404) {
+                console.warn("⚠️ Advertencia: No se encontró información para el ID solicitado.");
+            } else if (status === 401) {
+                console.warn("🔐 Error de autenticación: No tienes permisos para acceder a estos datos.");
+            } else if (status === 500) {
+                console.warn("🔥 Error del servidor: Hay un problema en el backend.");
+            }
+        }
+
+        return null; // Devolver `null` en lugar de `[]` para evitar mostrar listas vacías.
+    }
+};
+
+
+
 export const deleteEquipo = async (id) => {
     const url = `${RASPADORES_URL}${id}/`;
     try {

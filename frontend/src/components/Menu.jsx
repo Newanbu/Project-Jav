@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getCategorias, getEquipos, getRaspadores ,updateEquipo, logout,addRaspador,deleteEquipo, addCategoria, addCategoriaTag} from "../endpoints/endpoints";
+import { getCategorias, getEquipos, getRaspadores ,updateEquipo,info_raspador, logout,addRaspador,deleteEquipo, addCategoria, addCategoriaTag} from "../endpoints/endpoints";
 import Swal from "sweetalert2";
 import {useNavigate} from "react-router-dom";
 const Menu = () => {
@@ -8,8 +8,11 @@ const Menu = () => {
   const [raspadores, setRaspadores] = useState([]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(""); 
   const nav = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [showEditEquipoModal, setShowEditModal] = useState(false);
+  const [raspadorSeleccionado, setRaspadorSeleccionado] = useState(null);
   const [showAddEquipo, setShowAddEquipo] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null)
   const [showRaspadorModal, setShowRaspadorModal] = useState(false);
   const [showCatTagModal, setShowCatTagModal] = useState(false);
@@ -77,6 +80,27 @@ const handleChangeCat = (e) => {
 const openRaspadorModal = () => setShowRaspadorModal(true);
 const closeRaspadorModal = () => setShowRaspadorModal(false);
 
+const openShow = async (equipoId) => {
+    setLoading(true);
+    try {
+      const data = await info_raspador(equipoId);
+      setRaspadorSeleccionado(data);
+      console.log(data)
+      setShowInfo(true);
+    } catch (error) {
+      console.error("❌ Error al obtener el raspador:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo cargar la información del raspador.",
+        confirmButtonText: "Aceptar",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const closeShow = () => setShowInfo(false);
 
 const openCategoriaTagModal = () => setShowCatTagModal(true);
 const closeCategoriaTagModal = () => setShowCatTagModal(false);
@@ -459,7 +483,7 @@ return (
                     raspadores
                         .filter((raspador) => parseInt(raspador.equipo) === parseInt(equipo.id))
                         .map((raspador) => (
-                            <tr key={raspador.id} className={index % 2 === 0 ? "bg-white hover:bg-green-100" : "bg-green-50 hover:bg-green-100"}>
+                            <tr key={raspador.id} className={index % 2 === 0 ? "bg-white hover:bg-green-100" : "bg-green-50 hover:bg-green-100"} onClick={()=>openShow(raspador.id)}>  
                                 <td className="border px-4 py-3">
                                     {categorias.find((cat) => cat.id === equipo.categoria)?.nombre || "Sin Categoría"}
                                 </td>
@@ -709,7 +733,7 @@ return (
                     <input 
                         type="text" 
                         name="accion" 
-                        className="border p-2 rounded-lg w-full" 
+                        className="border p-2 rounded-lg w-full bg-gray-100 cursor-not-allowed" 
                         value={
                             equipoSeleccionado.dias_vida_util_disponible <= 0 ? equipoSeleccionado.accion = "Deshabilitado" :
                             equipoSeleccionado.dias_vida_util_disponible > 30 ? equipoSeleccionado.accion = "El raspador tiene una vida útil adecuada." :
@@ -869,6 +893,76 @@ return (
             </div>
         </div>
 )}
+
+{showInfo && (
+          <div
+            id="modal-backdrop"
+            className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center px-4 animate-fadeIn"
+            onClick={closeShow}
+          >
+            <div 
+              className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Botón de cerrar */}
+              <button
+                className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full hover:bg-red-700 transition duration-300"
+                onClick={closeShow}
+              >
+                X
+              </button>
+
+              <h3 className="text-xl font-bold mb-6 text-center text-gray-800">Detalles del Raspador</h3>
+
+              {loading ? (
+    <p className="text-center text-gray-500">Cargando información...</p>
+) : raspadorSeleccionado ? (
+    <div className="overflow-x-auto">
+        <table className="w-full border border-gray-300 shadow-lg text-md">
+            <thead className="bg-green-600 text-white">
+                <tr>
+                    <th className="border px-4 py-3 text-left">Campo</th>
+                    <th className="border px-4 py-3 text-left">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">Nombre</td>
+                    <td className="border px-4 py-3">{raspadorSeleccionado.raspador || "Sin nombre"}</td>
+                </tr>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">Días de vida útil</td>
+                    <td className="border px-4 py-3">{raspadorSeleccionado.dias_vida_util_disponible || "No disponible"} días</td>
+                </tr>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">% Vida útil disponible</td>
+                    <td className="border px-4 py-3">{raspadorSeleccionado.porcentaje_vida_util_disponible !== undefined ? `${raspadorSeleccionado.porcentaje_vida_util_disponible}%` : "No disponible"}</td>
+                </tr>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">Acción recomendada</td>
+                    <td className="border px-4 py-3">{raspadorSeleccionado.accion || "No disponible"}</td>
+                </tr>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">Estatus</td>
+                    <td className="border px-4 py-3 text-green-700 font-bold">{raspadorSeleccionado.estatus || "No disponible"}</td>
+                </tr>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">Último cambio</td>
+                    <td className="border px-4 py-3">{raspadorSeleccionado.fecha_ultimo_cambio || "No disponible"}</td>
+                </tr>
+                <tr>
+                    <td className="border px-4 py-3 font-bold text-gray-800">Próximo cambio</td>
+                    <td className="border px-4 py-3">{raspadorSeleccionado.proximo_cambio || "No disponible"}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+) : (
+    <p className="text-center text-gray-500">No se encontró información del raspador.</p>
+)}
+            </div>
+          </div>
+        )}
   </div>
   </>
 );
