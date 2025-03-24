@@ -211,8 +211,6 @@ export const info_raspador = async (id) => {
             throw new Error("❌ Error: Se intentó obtener información con un ID inválido.");
         }
 
-        console.log(`📡 Solicitando datos del raspador con ID: ${id} en ${RASPADORES_URL}/${id}`);
-
         const response = await axios.get(`${RASPADORES_URL}${id}`, {
             withCredentials: true,
             headers: {
@@ -224,11 +222,9 @@ export const info_raspador = async (id) => {
             throw new Error("❌ La API devolvió una respuesta vacía.");
         }
 
-        console.log("✅ Datos del raspador recibidos:", response.data);
         return response.data;
 
     } catch (error) {
-        console.error("❌ Error al obtener información del raspador:", error.response?.data || error.message);
         
         // Si la API devuelve un error 404 o 500, mostrar mensaje claro
         if (error.response) {

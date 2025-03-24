@@ -16,6 +16,7 @@ const Menu = () => {
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null)
   const [showRaspadorModal, setShowRaspadorModal] = useState(false);
   const [showCatTagModal, setShowCatTagModal] = useState(false);
+  const [tagFilter, setTagFilter] = useState("");
   const [newRaspador, setNewRaspador] = useState({
       equipo: "",
       raspador: "",
@@ -67,7 +68,6 @@ const handleChange = (e) => {
     }));
 };
 
-
 const handleChangeCat = (e) => {
     const { name, value } = e.target;
     setcategoriaTagSeleccionado((prev) => ({
@@ -76,9 +76,84 @@ const handleChangeCat = (e) => {
     }));
 };
 
+const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewRaspador((prevState) => ({
+        ...prevState,
+        [name]: value,
+    }));
+  
+    // 📌 Si el usuario cambia las fechas, recalcular el ciclo de hoja y los días de vida útil
+    if (name === "fecha_ultimo_cambio" || name === "proximo_cambio") {
+        const fechaInicio = name === "fecha_ultimo_cambio" ? value : newRaspador.fecha_ultimo_cambio;
+        const fechaFin = name === "proximo_cambio" ? value : newRaspador.proximo_cambio;
+  
+        if (fechaInicio && fechaFin) {
+            const cicloHoja = calcularDiferenciaDias(fechaInicio, fechaFin);
+            const diasRestantes = calcularDiferenciaDias(new Date(), fechaFin);
+            const porcentajeVida = cicloHoja > 0 ? ((diasRestantes / cicloHoja) * 100).toFixed(2) : 0;
+  
+            setNewRaspador((prevState) => ({
+                ...prevState,
+                ciclo_hoja: cicloHoja, // 📌 Actualiza ciclo de hoja
+                dias_vida_util_disponible: diasRestantes, // 📌 Actualiza días restantes
+                porcentaje_vida_util_disponible: porcentajeVida, // 📌 Actualiza porcentaje de vida útil
+            }));
+        }
+    }
+  };
+
+  
+const handleEditRaspadorChange = (e) => {
+    const { name, value } = e.target;
+    setEquipoSeleccionado((prevState) => ({
+        ...prevState,
+        [name]: value,
+    }));
+  
+    // 📌 Recalcular ciclo de hoja, días de vida útil y porcentaje si cambian las fechas
+    if (name === "fecha_ultimo_cambio" || name === "proximo_cambio") {
+        const fechaInicio = name === "fecha_ultimo_cambio" ? value : equipoSeleccionado.fecha_ultimo_cambio;
+        const fechaFin = name === "proximo_cambio" ? value : equipoSeleccionado.proximo_cambio;
+  
+        if (fechaInicio && fechaFin) {
+            const cicloHoja = calcularDiferenciaDias(fechaInicio, fechaFin);
+            const diasRestantes = calcularDiferenciaDias(new Date(), fechaFin);
+            const porcentajeVida = cicloHoja > 0 ? ((diasRestantes / cicloHoja) * 100).toFixed(2) : 0;
+  
+            setEquipoSeleccionado((prevState) => ({
+                ...prevState,
+                ciclo_hoja: cicloHoja, // 📌 Actualiza ciclo de hoja
+                dias_vida_util_disponible: diasRestantes, // 📌 Actualiza días restantes
+                porcentaje_vida_util_disponible: porcentajeVida, // 📌 Actualiza porcentaje de vida útil
+            }));
+        }
+    }
+  };
+
+// Secciones de open y close MODALES
 
 const openRaspadorModal = () => setShowRaspadorModal(true);
 const closeRaspadorModal = () => setShowRaspadorModal(false);
+const openCategoriaTagModal = () => setShowCatTagModal(true);
+const closeCategoriaTagModal = () => setShowCatTagModal(false);
+const openEditEquipoModal = (equipo) => {
+    setEquipoSeleccionado(equipo);
+    setShowEditModal(true);
+  };
+  
+  const openAddEquipoModal = () => {
+      setShowAddEquipo(true);
+  };
+  
+  const closeAddEquipoModal = () => {
+      setShowAddEquipo(false);
+  };
+  
+const closeEditEquipoModal = () => {
+    setShowEditModal(false);
+    setEquipoSeleccionado(null);
+  };
 
 const openShow = async (equipoId) => {
     setLoading(true);
@@ -102,21 +177,37 @@ const openShow = async (equipoId) => {
 
 const closeShow = () => setShowInfo(false);
 
-const openCategoriaTagModal = () => setShowCatTagModal(true);
-const closeCategoriaTagModal = () => setShowCatTagModal(false);
+
+
   
+  // FUNCIONES 
+
+  const handleDeleteRas = async (id) => {
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: "Esta acción eliminará el raspador permanentemente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
+    })
   
-const handleDeleteRas = async (id) => {
-  await deleteEquipo(id)
-  Swal.fire({
-    title:"Raspador eliminado",
-    text:"raspador eliminado correctamente",
-    icon:"success",
-    confirmButtonText:"Aceptar"
-  })
-  const getras = await getRaspadores()
-  setRaspadores(getras)
-}
+    if (result.isConfirmed) {
+      await deleteEquipo(id)
+  
+      Swal.fire({
+        title: "Raspador eliminado",
+        text: "Raspador eliminado correctamente",
+        icon: "success",
+        confirmButtonText: "Aceptar"
+      })
+  
+      const getras = await getRaspadores()
+      setRaspadores(getras)
+    }
+  }
 
 const handleAddTag = async () => {
     if (!tagSeleccionado.categoria || !tagSeleccionado.tag_estandar) {
@@ -167,53 +258,8 @@ const calcularVidaUtil = (proximoCambio, cicloHoja) => {
   return { diasRestantes, porcentajeVidaUtil };
 };
 
-const openEditEquipoModal = (equipo) => {
-  setEquipoSeleccionado(equipo);
-  setShowEditModal(true);
-};
 
-const openAddEquipoModal = () => {
-    setShowAddEquipo(true);
-};
-
-
-const closeAddEquipoModal = () => {
-    setShowAddEquipo(false);
-};
-
-const closeEditEquipoModal = () => {
-  setShowEditModal(false);
-  setEquipoSeleccionado(null);
-};
-
-
-const handleEditRaspadorChange = (e) => {
-  const { name, value } = e.target;
-  setEquipoSeleccionado((prevState) => ({
-      ...prevState,
-      [name]: value,
-  }));
-
-  // 📌 Recalcular ciclo de hoja, días de vida útil y porcentaje si cambian las fechas
-  if (name === "fecha_ultimo_cambio" || name === "proximo_cambio") {
-      const fechaInicio = name === "fecha_ultimo_cambio" ? value : equipoSeleccionado.fecha_ultimo_cambio;
-      const fechaFin = name === "proximo_cambio" ? value : equipoSeleccionado.proximo_cambio;
-
-      if (fechaInicio && fechaFin) {
-          const cicloHoja = calcularDiferenciaDias(fechaInicio, fechaFin);
-          const diasRestantes = calcularDiferenciaDias(new Date(), fechaFin);
-          const porcentajeVida = cicloHoja > 0 ? ((diasRestantes / cicloHoja) * 100).toFixed(2) : 0;
-
-          setEquipoSeleccionado((prevState) => ({
-              ...prevState,
-              ciclo_hoja: cicloHoja, // 📌 Actualiza ciclo de hoja
-              dias_vida_util_disponible: diasRestantes, // 📌 Actualiza días restantes
-              porcentaje_vida_util_disponible: porcentajeVida, // 📌 Actualiza porcentaje de vida útil
-          }));
-      }
-  }
-};
-
+// Función para agregar el tag de la categoria
 const handleAddCatTag = async () => {
     if (!categoriaTagSeleccionado.nombre) {
         Swal.fire({
@@ -244,6 +290,67 @@ const handleAddCatTag = async () => {
     }
 }
 
+// Función para agregar un raspador
+const handleAddRaspador = async () => {
+    if (!newRaspador.equipo) {
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Debes seleccionar un equipo antes de agregar el raspador.",
+            confirmButtonText: "Aceptar",
+        });
+        return;
+    }
+
+    try {
+        await addRaspador(
+            newRaspador.equipo,
+            newRaspador.raspador,
+            newRaspador.dias_vida_util_disponible,
+            newRaspador.porcentaje_vida_util_disponible,
+            newRaspador.accion,
+            newRaspador.estatus,
+            newRaspador.fecha_ultimo_cambio,
+            newRaspador.ciclo_hoja,
+            newRaspador.proximo_cambio
+        );
+
+        Swal.fire({
+            icon: "success",
+            title: "Raspador agregado",
+            text: "El raspador fue agregado correctamente.",
+            confirmButtonText: "Aceptar",
+        });
+
+        // 🔄 Actualizar la lista de raspadores después de agregar uno nuevo
+        const updatedRaspadores = await getRaspadores();
+        setRaspadores(updatedRaspadores);
+
+        // 📌 Restablecer el formulario después de agregar
+        setNewRaspador({
+            equipo: "",
+            raspador: "",
+            dias_vida_util_disponible: "",
+            porcentaje_vida_util_disponible: "",
+            accion: "",
+            estatus: "",
+            fecha_ultimo_cambio: "",
+            ciclo_hoja: "",
+            proximo_cambio: "",
+        });
+        closeRaspadorModal();
+    } catch (error) {
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Hubo un problema al agregar el raspador.",
+            confirmButtonText: "Aceptar",
+        });
+        closeRaspadorModal();
+    }
+};
+
+// Función para actualizar el equipo
 const handleUpdateEquipo = async () => {
 
   if (!equipoSeleccionado.id) {
@@ -279,10 +386,8 @@ const handleUpdateEquipo = async () => {
   }
 };
 
-
-
-
-  const calcularDiferenciaDias = (fechaInicio, fechaFin) => {
+// Calcular la diferencia de días entre dos fechas
+const calcularDiferenciaDias = (fechaInicio, fechaFin) => {
     const date1 = new Date(fechaInicio);
     const date2 = new Date(fechaFin);
 
@@ -292,33 +397,8 @@ const handleUpdateEquipo = async () => {
     return Math.max(Math.ceil(diferenciaTiempo / (1000 * 3600 * 24)), 0); // Convertir a días y asegurar que no sea negativo
 };
 
-const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  setNewRaspador((prevState) => ({
-      ...prevState,
-      [name]: value,
-  }));
 
-  // 📌 Si el usuario cambia las fechas, recalcular el ciclo de hoja y los días de vida útil
-  if (name === "fecha_ultimo_cambio" || name === "proximo_cambio") {
-      const fechaInicio = name === "fecha_ultimo_cambio" ? value : newRaspador.fecha_ultimo_cambio;
-      const fechaFin = name === "proximo_cambio" ? value : newRaspador.proximo_cambio;
-
-      if (fechaInicio && fechaFin) {
-          const cicloHoja = calcularDiferenciaDias(fechaInicio, fechaFin);
-          const diasRestantes = calcularDiferenciaDias(new Date(), fechaFin);
-          const porcentajeVida = cicloHoja > 0 ? ((diasRestantes / cicloHoja) * 100).toFixed(2) : 0;
-
-          setNewRaspador((prevState) => ({
-              ...prevState,
-              ciclo_hoja: cicloHoja, // 📌 Actualiza ciclo de hoja
-              dias_vida_util_disponible: diasRestantes, // 📌 Actualiza días restantes
-              porcentaje_vida_util_disponible: porcentajeVida, // 📌 Actualiza porcentaje de vida útil
-          }));
-      }
-  }
-};
-
+// Funcion para deslogearse
 const handleLogout = async() => {
         const response = await logout()
         if(response){
@@ -332,204 +412,174 @@ const handleLogout = async() => {
         }
     } 
 
-    const handleAddRaspador = async () => {
-      if (!newRaspador.equipo) {
-          Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: "Debes seleccionar un equipo antes de agregar el raspador.",
-              confirmButtonText: "Aceptar",
-          });
-          return;
-      }
-  
-      try {
-          await addRaspador(
-              newRaspador.equipo,
-              newRaspador.raspador,
-              newRaspador.dias_vida_util_disponible,
-              newRaspador.porcentaje_vida_util_disponible,
-              newRaspador.accion,
-              newRaspador.estatus,
-              newRaspador.fecha_ultimo_cambio,
-              newRaspador.ciclo_hoja,
-              newRaspador.proximo_cambio
-          );
-  
-          Swal.fire({
-              icon: "success",
-              title: "Raspador agregado",
-              text: "El raspador fue agregado correctamente.",
-              confirmButtonText: "Aceptar",
-          });
-  
-          // 🔄 Actualizar la lista de raspadores después de agregar uno nuevo
-          const updatedRaspadores = await getRaspadores();
-          setRaspadores(updatedRaspadores);
-  
-          // 📌 Restablecer el formulario después de agregar
-          setNewRaspador({
-              equipo: "",
-              raspador: "",
-              dias_vida_util_disponible: "",
-              porcentaje_vida_util_disponible: "",
-              accion: "",
-              estatus: "",
-              fecha_ultimo_cambio: "",
-              ciclo_hoja: "",
-              proximo_cambio: "",
-          });
-          closeRaspadorModal();
-      } catch (error) {
-          Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: "Hubo un problema al agregar el raspador.",
-              confirmButtonText: "Aceptar",
-          });
-          closeRaspadorModal();
-      }
-  };
+
 
   
   // 🔹 Filtrar equipos por categoría seleccionada
-  const equiposFiltrados = categoriaSeleccionada
-  ? equipos.filter((equipo) => parseInt(equipo.categoria) === parseInt(categoriaSeleccionada))
-  : equipos;
+  const equiposFiltrados = equipos.filter((equipo) => {
+    let categoriaMatch = true;
+    let tagMatch = true;
+    if (categoriaSeleccionada) {
+      categoriaMatch = parseInt(equipo.categoria) === parseInt(categoriaSeleccionada);
+    }
+    if (tagFilter) {
+      tagMatch = equipo.tag_estandar.toLowerCase().includes(tagFilter.toLowerCase());
+    }
+    return categoriaMatch && tagMatch;
+  });
 
 return (
   <>
     <div className="p-6">
     <h2 className="text-3xl font-bold mb-4 text-gray-800 text-center">Lista de Equipos y Raspadores</h2>
 
-      {/* 🔹 Filtro por Categoría */}
-      <div 
-    className="mb-6 flex flex-col md:flex-row justify-between items-center gap-6 p-4 rounded-lg shadow-lg bg-white bg-opacity-80 w-full relative"
-    style={{ backgroundImage: "url('/Fondo.png')", backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
->
-    {/* 🔹 Filtro por Categoría */}
-    <div className="flex items-center gap-3">
-        <label className="text-lg font-semibold text-gray-800">Filtrar por Categoría:</label>
-        <select
-            className="border p-2 rounded-lg bg-white shadow-md text-gray-800 focus:ring-2 focus:ring-green-500"
-            value={categoriaSeleccionada}
-            onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+       {/* 🔹 Filtro por Categoría */}
+       <div 
+          className="mb-6 flex flex-col md:flex-row justify-between items-center gap-6 p-4 rounded-lg shadow-lg bg-white bg-opacity-80 w-full relative"
+          style={{ backgroundImage: "url('/Fondo.png')", backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
         >
-            <option value="">Todas</option>
-            {categorias.map((categoria) => (
+          {/* 🔹 Filtro por Categoría */}
+          <div className="flex items-center gap-3">
+            <label className="text-lg font-semibold text-gray-800">Filtrar por Categoría:</label>
+            <select
+              className="border p-2 rounded-lg bg-white shadow-md text-gray-800 focus:ring-2 focus:ring-green-500"
+              value={categoriaSeleccionada}
+              onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+            >
+              <option value="">Todas</option>
+              {categorias.map((categoria) => (
                 <option key={categoria.id} value={categoria.id}>
-                    {categoria.nombre}
+                  {categoria.nombre}
                 </option>
-            ))}
-        </select>
-    </div>
+              ))}
+            </select>
+          </div>
 
-
+          {/* 🔹 Filtro por TAG del Equipo */}
+          <div className="flex items-center gap-3">
+            <label className="text-lg font-semibold text-gray-800">Filtrar por TAG del Equipo:</label>
+            <input 
+              type="text"
+              placeholder="Ingrese nombre del TAG"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              className="border p-2 rounded-lg bg-white shadow-md text-gray-800 focus:ring-2 focus:ring-green-500"
+            />
+          </div>
 
     {/* 🔹 Botones de Acción */}
     <div className="flex gap-4">
-        <button 
-            onClick={handleLogout} 
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-        >
-            Logout
-        </button>
 
-        <button 
-            onClick={openRaspadorModal} 
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-        >
-            Agregar Raspador
-        </button>
 
-        <button 
-            onClick={openAddEquipoModal} 
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-        >
-            Agregar Equipo
-        </button>
+            <button 
+                onClick={openRaspadorModal} 
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            >
+                Agregar Raspador
+            </button>
 
-        <button 
-            onClick={openCategoriaTagModal} 
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-        >
-            Agregar Categoria
-        </button>
+            <button 
+                onClick={openAddEquipoModal} 
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            >
+                Agregar Equipo
+            </button>
+
+            <button 
+                onClick={openCategoriaTagModal} 
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            >
+                Agregar Categoria
+            </button>
+
+            <button 
+                onClick={handleLogout} 
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+                Logout
+            </button>
+        </div>
     </div>
-</div>
 
 
     {/* 🔹 Tabla de Equipos y Raspadores */}
     <div className="overflow-x-auto rounded-xl">
-    <table className="w-full border border-gray-300 shadow-lg text-md">
-        <thead className="bg-green-600 text-white">
-            <tr>
-                <th className="border px-4 py-3 text-left">Categoría</th>
-                <th className="border px-4 py-3 text-left">TAG del Equipo</th>
-                <th className="border px-4 py-3 text-left">Tipo de Raspador</th>
-                <th className="border px-4 py-3 text-left">Días de Vida Útil</th>
-                <th className="border px-4 py-3 text-left">% de Vida Útil</th>
-                <th className="border px-4 py-3 text-left">Acción Recomendada</th>
-                <th className="border px-4 py-3 text-left">Estado</th>
-                <th className="border px-4 py-3 text-left">Último Cambio</th>
-                <th className="border px-4 py-3 text-left">Ciclo Hoja</th>
-                <th className="border px-4 py-3 text-left">Próximo Cambio</th>
-                <th className="border px-4 py-3 text-left">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {equiposFiltrados.length > 0 ? (
-                equiposFiltrados.map((equipo, index) => (
-                    raspadores
-                        .filter((raspador) => parseInt(raspador.equipo) === parseInt(equipo.id))
-                        .map((raspador) => (
-                            <tr key={raspador.id} className={index % 2 === 0 ? "bg-white hover:bg-green-100" : "bg-green-50 hover:bg-green-100"} onClick={()=>openShow(raspador.id)}>  
-                                <td className="border px-4 py-3">
-                                    {categorias.find((cat) => cat.id === equipo.categoria)?.nombre || "Sin Categoría"}
-                                </td>
-                                <td className="border px-4 py-3 font-bold text-gray-800">{equipo.tag_estandar}</td>
-                                <td className="border px-4 py-3">{raspador.raspador}</td>
-                                <td className="border px-4 py-3 text-center">{raspador.dias_vida_util_disponible} días</td>
-                                <td className="border px-4 py-3 text-center">{raspador.porcentaje_vida_util_disponible}%</td>
-                                <td className="border px-4 py-3">{raspador.accion}</td>
-                                <td className="border px-4 py-3 text-center font-bold text-green-700">{raspador.estatus}</td>
-                                <td className="border px-4 py-3 text-center">{raspador.fecha_ultimo_cambio}</td>
-                                <td className="border px-4 py-3 text-center">{raspador.ciclo_hoja} días</td>
-                                <td className="border px-4 py-3 text-center">{raspador.proximo_cambio}</td>
-                                <td className="border px-4 py-3 text-center">
-                                    <div className="flex justify-center gap-2">
-                                        {/* 🔹 Botón Editar */}
-                                        <button 
-                                            onClick={() => openEditEquipoModal(raspador)} 
-                                            className="flex items-center bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                                        >
-                                            ✏️ Editar
-                                        </button>
-
-                                        {/* 🔹 Botón Eliminar */}
-                                        <button 
-                                            onClick={() => handleDeleteRas(raspador.id)} 
-                                            className="flex items-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                                        >
-                                            🗑️ Eliminar
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
-                ))
-            ) : (
+        <table className="w-full border border-gray-300 shadow-lg text-md">
+            <thead className="bg-green-600 text-white">
                 <tr>
-                    <td colSpan="11" className="text-center p-4 text-gray-500">
-                        No hay raspadores registrados.
-                    </td>
+                    <th className="border px-4 py-3 text-left">Categoría</th>
+                    <th className="border px-4 py-3 text-left">TAG del Equipo</th>
+                    <th className="border px-4 py-3 text-left">Tipo de Raspador</th>
+                    <th className="border px-4 py-3 text-left">Días de Vida Útil</th>
+                    <th className="border px-4 py-3 text-left">% de Vida Útil</th>
+                    <th className="border px-4 py-3 text-left">Acción Recomendada</th>
+                    <th className="border px-4 py-3 text-left">Estado</th>
+                    <th className="border px-4 py-3 text-left">Último Cambio</th>
+                    <th className="border px-4 py-3 text-left">Ciclo Hoja</th>
+                    <th className="border px-4 py-3 text-left">Próximo Cambio</th>
+                    <th className="border px-4 py-3 text-left">Acciones</th>
                 </tr>
-            )}
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                {equiposFiltrados.length > 0 ? (
+                    equiposFiltrados.map((equipo, index) => (
+                        raspadores
+                            .filter((raspador) => parseInt(raspador.equipo) === parseInt(equipo.id))
+                            .map((raspador) => (
+                                <tr key={raspador.id} className={index % 2 === 0 ? "bg-white hover:bg-green-100" : "bg-green-50 hover:bg-green-100"} >  
+                                    <td className="border px-4 py-3">
+                                        {categorias.find((cat) => cat.id === equipo.categoria)?.nombre || "Sin Categoría"}
+                                    </td>
+                                    <td className="border px-4 py-3 font-bold text-gray-800">{equipo.tag_estandar}</td>
+                                    <td className="border px-4 py-3">{raspador.raspador}</td>
+                                    <td className="border px-4 py-3 text-center">{raspador.dias_vida_util_disponible} días</td>
+                                    <td className="border px-4 py-3 text-center">{raspador.porcentaje_vida_util_disponible}%</td>
+                                    <td className="border px-4 py-3">{raspador.accion}</td>
+                                    <td className="border px-4 py-3 text-center font-bold text-green-700">{raspador.estatus}</td>
+                                    <td className="border px-4 py-3 text-center">{raspador.fecha_ultimo_cambio}</td>
+                                    <td className="border px-4 py-3 text-center">{raspador.ciclo_hoja} días</td>
+                                    <td className="border px-4 py-3 text-center">{raspador.proximo_cambio}</td>
+                                    <td className="border px-4 py-3 text-center">
+                                        <div className="flex justify-center gap-2">
+                                            {/* 🔹 Botón Visualizar */}
+                                            <button 
+                                                onClick={() => openShow(raspador.id)} 
+                                                className="flex items-center bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                                            >
+                                            Detalles
+                                            </button>
+                                            {/* 🔹 Botón Editar */}
+                                            <button 
+                                                onClick={() => openEditEquipoModal(raspador)} 
+                                                className="flex items-center bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                                            >
+                                            Editar
+                                            </button>
 
-    {showRaspadorModal && (
+                                            {/* 🔹 Botón Eliminar */}
+                                            <button 
+                                                onClick={() => handleDeleteRas(raspador.id)} 
+                                                className="flex items-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                                            >
+                                            Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                    ))
+                ) : (
+                    <tr>
+                        <td colSpan="11" className="text-center p-4 text-gray-500">
+                            No hay raspadores registrados.
+                        </td>
+                    </tr>
+                )}
+            </tbody>
+        </table>
+    </div>
+
+{showRaspadorModal && (
     <div
         id="modal-backdrop"
         className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center px-4 animate-fadeIn"
